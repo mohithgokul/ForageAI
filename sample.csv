@@ -1,0 +1,21 @@
+student_name,email,course_name,instructor_name,rating,difficulty,would_recommend,feedback_comment,submission_date
+Arjun Sharma,arjun.sharma@students.edu,Data Structures & Algorithms,Dr. Priya Menon,5,Hard,Yes,Excellent course. The way Dr. Menon explains recursion and trees is very clear. Assignments were challenging but worth it.,2024-01-15
+Sneha Reddy,sneha.reddy@students.edu,Machine Learning Fundamentals,Prof. Rajan Kumar,4,Medium,Yes,Really enjoyed the hands-on projects. Would have liked more coverage of deep learning topics.,2024-01-15
+Vikram Nair,vikram.nair@students.edu,Web Development with React,Dr. Anita Desai,5,Medium,Yes,Best course I have taken this semester. Project-based learning approach worked really well for me.,2024-01-16
+Pooja Iyer,pooja.iyer@students.edu,Database Management Systems,Prof. Suresh Rao,3,Hard,No,Course content was good but the exam pattern was not aligned with what was taught in class.,2024-01-16
+Rahul Gupta,rahul.gupta@students.edu,Data Structures & Algorithms,Dr. Priya Menon,4,Hard,Yes,Tough course but Dr. Menon is very supportive. Office hours were extremely helpful.,2024-01-17
+Divya Krishnan,divya.krishnan@students.edu,Machine Learning Fundamentals,Prof. Rajan Kumar,5,Medium,Yes,The assignments on regression and classification were very practical and industry relevant.,2024-01-17
+Aditya Patel,aditya.patel@students.edu,Web Development with React,Dr. Anita Desai,4,Easy,Yes,Good introduction to React. Wished the course covered Next.js and backend integration too.,2024-01-18
+Lakshmi Venkat,lakshmi.venkat@students.edu,Database Management Systems,Prof. Suresh Rao,2,Hard,No,Lectures moved too fast. Slides were not sufficient to study from. Need more practice problems.,2024-01-18
+Karthik Rajan,karthik.rajan@students.edu,Data Structures & Algorithms,Dr. Priya Menon,5,Hard,Yes,One of the best DSA courses available. Competitive programming problems at the end were great.,2024-01-19
+Meera Nambiar,meera.nambiar@students.edu,Machine Learning Fundamentals,Prof. Rajan Kumar,3,Medium,Yes,Decent course. The math prerequisites were not clearly communicated at the start of semester.,2024-01-19
+Siddharth Joshi,siddharth.joshi@students.edu,Web Development with React,Dr. Anita Desai,5,Easy,Yes,Loved every lecture. The final project of building a full portfolio site was very satisfying.,2024-01-20
+Ananya Singh,ananya.singh@students.edu,Database Management Systems,Prof. Suresh Rao,4,Hard,Yes,Challenging but rewarding. SQL query optimization section was particularly eye opening.,2024-01-20
+Rohan Mehta,rohan.mehta@students.edu,Data Structures & Algorithms,Dr. Priya Menon,3,Hard,No,Content is good but the pace was too fast for beginners. More beginner friendly examples needed.,2024-01-21
+Priya Chakraborty,priya.chakraborty@students.edu,Machine Learning Fundamentals,Prof. Rajan Kumar,5,Medium,Yes,Absolutely loved this course. The Kaggle competition at the end was a fantastic practical experience.,2024-01-21
+Nikhil Sharma,nikhil.sharma@students.edu,Web Development with React,Dr. Anita Desai,4,Medium,Yes,Very practical course. The component architecture concepts will be directly useful in internships.,2024-01-22
+Bhavya Reddy,bhavya.reddy@students.edu,Database Management Systems,Prof. Suresh Rao,3,Hard,No,Theory is fine but lab sessions needed better infrastructure. Servers kept going down during practicals.,2024-01-22
+Ishaan Malhotra,ishaan.malhotra@students.edu,Data Structures & Algorithms,Dr. Priya Menon,4,Hard,Yes,Very well structured course. The week by week progression from arrays to graphs was logical.,2024-01-23
+Tanvi Agarwal,tanvi.agarwal@students.edu,Machine Learning Fundamentals,Prof. Rajan Kumar,4,Medium,Yes,Good course overall. Would appreciate recorded lectures for revision before exams.,2024-01-23
+Yash Kulkarni,yash.kulkarni@students.edu,Web Development with React,Dr. Anita Desai,3,Easy,Yes,Good for beginners but advanced students may find it slow. Could use more advanced projects.,2024-01-24
+Kavya Pillai,kavya.pillai@students.edu,Database Management Systems,Prof. Suresh Rao,5,Hard,Yes,Initially struggled but by the end it all clicked. Professor Rao is very knowledgeable and helpful.,2024-01-24

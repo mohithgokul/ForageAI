@@ -248,11 +248,14 @@ function AppPage() {
                               style={{ background: i % 2 ? "#0A0A0F" : "#0F0F1A", transition: "background 150ms" }}
                               onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(168,85,247,0.06)")}
                               onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 ? "#0A0A0F" : "#0F0F1A")}>
-                              {fields.map((f: string) => (
-                                <td key={f} style={{ padding: "12px 16px", fontFamily: "var(--font-mono)" }}>
-                                  {String(row[f] ?? "")}
-                                </td>
-                              ))}
+                              {fields.map((f: string) => {
+                                const colKey = f.replace(/[^a-zA-Z0-9_]/g, "");
+                                return (
+                                  <td key={f} style={{ padding: "12px 16px", fontFamily: "var(--font-mono)" }}>
+                                    {String(row[colKey] ?? "")}
+                                  </td>
+                                );
+                              })}
                               <td style={{ padding: "12px 16px", textAlign: "right" }}>
                                 <span className="opacity-0 group-hover:opacity-100 inline-flex gap-2 transition-opacity">
                                   <button onClick={() => handleDeleteRow(row.id)}>

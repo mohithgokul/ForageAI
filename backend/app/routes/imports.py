@@ -80,27 +80,21 @@ async def import_csv(
     # Batch insert valid rows
     tbl = get_table_name(app_id, table_name)
     inserted = 0
-    batch_size = 500
-    for batch_start in range(0, len(valid_rows), batch_size):
-        batch = valid_rows[batch_start: batch_start + batch_size]
-        pool = await db.get_pool()
-        async with pool.acquire() as conn:
-            async with conn.transaction():
-                for mapped_row in batch:
-                    keys = [re.sub(r"[^a-z0-9_]", "", k, flags=re.IGNORECASE) for k in mapped_row.keys()]
-                    vals = list(mapped_row.values())
-                    if not keys:
-                        continue
-                    placeholders = ", ".join(f"${j+1}" for j in range(len(vals)))
-                    cols = ", ".join(f'"{k}"' for k in keys)
-                    try:
-                        await conn.execute(
-                            f'INSERT INTO "{tbl}" ({cols}) VALUES ({placeholders}) ON CONFLICT DO NOTHING',
-                            *vals,
-                        )
-                        inserted += 1
-                    except Exception:
-                        pass
+    for mapped_row in valid_rows:
+        keys = [re.sub(r"[^a-z0-9_]", "", k, flags=re.IGNORECASE) for k in mapped_row.keys()]
+        vals = list(mapped_row.values())
+        if not keys:
+            continue
+        placeholders = ", ".join(f"${j+1}" for j in range(len(vals)))
+        cols = ", ".join(f'"{k}"' for k in keys)
+        try:
+            await db.execute(
+                f'INSERT INTO "{tbl}" ({cols}) VALUES ({placeholders})',
+                *vals,
+            )
+            inserted += 1
+        except Exception as e:
+            print(f"Import insert error: {e}")
 
     # Cache errors for download endpoint
     cache_key = f"{app_id}:{table_name}"

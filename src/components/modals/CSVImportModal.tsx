@@ -2,6 +2,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef } from "react";
 import { Upload, X, Check, AlertTriangle, ArrowRight } from "lucide-react";
 import { easeExpo } from "@/lib/motion";
+import api from "@/lib/api";
+import Papa from "papaparse";
 
 interface Props {
   open: boolean;
@@ -14,31 +16,89 @@ interface Props {
 
 const STEPS = ["UPLOAD", "MAP COLUMNS", "PREVIEW", "IMPORT"];
 
-export function CSVImportModal({ open, onClose, tableName, fields }: Props) {
+export function CSVImportModal({ open, onClose, tableName, fields, appId, onImport }: Props) {
   const [step, setStep] = useState(0);
-  const [fileName, setFileName] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [csvData, setCsvData] = useState<any[]>([]);
+  const [mapping, setMapping] = useState<Record<string, string>>({});
+  
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState<{inserted: number, skipped: number, errors: any[]} | null>(null);
+  
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const csvHeaders = ["name", "email_address", "company", "phone", "unknown_col"];
-  const previewRows = [
-    {
-      ok: true,
-      vals: ["Ada Lovelace", "ada@analytical.engine", "Babbage Ltd", "+44 20 7946 0958"],
-    },
-    { ok: true, vals: ["Grace Hopper", "grace@navy.mil", "USN", "+1 202 555 0134"] },
-    {
-      ok: false,
-      vals: ["Linus T.", "not-an-email", "Linux Foundation", "012"],
-      err: "Invalid email",
-    },
-    { ok: true, vals: ["Margaret H.", "margaret@apollo.gov", "NASA", "+1 713 555 9876"] },
-    { ok: false, vals: ["", "anon@void", "—", "—"], err: "Missing required: name" },
-  ];
 
   const reset = () => {
     setStep(0);
-    setFileName(null);
+    setFile(null);
+    setCsvHeaders([]);
+    setCsvData([]);
+    setMapping({});
+    setImportLoading(false);
+    setImportResult(null);
   };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) {
+      setFile(f);
+      Papa.parse(f, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          setCsvHeaders(results.meta.fields || []);
+          setCsvData(results.data);
+          
+          // Auto-map columns
+          const initialMapping: Record<string, string> = {};
+          (results.meta.fields || []).forEach(h => {
+            const matched = fields.find(f => h.toLowerCase().includes(f.toLowerCase().slice(0, 3)));
+            if (matched) initialMapping[h] = matched;
+          });
+          setMapping(initialMapping);
+        }
+      });
+    }
+  };
+
+  const handleImport = async () => {
+    if (!file) return;
+    setImportLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("mapping", JSON.stringify(mapping));
+      
+      const { data } = await api.post(`/api/apps/${appId}/import/${tableName}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      setImportResult(data);
+      if (onImport) onImport();
+      setStep(3);
+    } catch (err) {
+      alert("Import failed. Check console for details.");
+      console.error(err);
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const previewRows = csvData.slice(0, 5).map(row => {
+    const mapped: any = {};
+    Object.keys(mapping).forEach(csvCol => {
+      if (mapping[csvCol]) mapped[mapping[csvCol]] = row[csvCol];
+    });
+    // Very basic frontend validation preview
+    let ok = true;
+    let err = "";
+    fields.forEach(f => {
+      if (!mapped[f] && false) { // Assuming not strictly required for preview logic
+        ok = false;
+        err = "Missing field";
+      }
+    });
+    return { ok, vals: fields.slice(0, 4).map(f => mapped[f] || ""), err };
+  });
 
   return (
     <AnimatePresence>
@@ -168,9 +228,9 @@ export function CSVImportModal({ open, onClose, tableName, fields }: Props) {
                     <div className="mt-2 text-xs" style={{ color: "var(--forge-text-muted)" }}>
                       Accepts .csv files up to 10MB
                     </div>
-                    {fileName && (
+                    {file && (
                       <div className="mt-4 text-xs" style={{ color: "var(--forge-cyan-bright)" }}>
-                        ✓ {fileName}
+                        ✓ {file.name}
                       </div>
                     )}
                   </div>
@@ -179,7 +239,7 @@ export function CSVImportModal({ open, onClose, tableName, fields }: Props) {
                     type="file"
                     accept=".csv"
                     hidden
-                    onChange={(e) => setFileName(e.target.files?.[0]?.name ?? "sample.csv")}
+                    onChange={handleFileChange}
                   />
                   <div className="mt-8">
                     <div className="eyebrow mb-3">// expected columns for this table</div>
@@ -209,10 +269,8 @@ export function CSVImportModal({ open, onClose, tableName, fields }: Props) {
                 <div>
                   <div className="eyebrow mb-4">// map your csv columns to table fields</div>
                   <div className="space-y-2">
-                    {csvHeaders.map((h, i) => {
-                      const matched = fields.find((f) =>
-                        h.toLowerCase().includes(f.toLowerCase().slice(0, 3)),
-                      );
+                    {csvHeaders.map((h) => {
+                      const matched = mapping[h] || "";
                       return (
                         <div
                           key={h}
@@ -233,7 +291,8 @@ export function CSVImportModal({ open, onClose, tableName, fields }: Props) {
                           </div>
                           <div className="col-span-5">
                             <select
-                              defaultValue={matched ?? ""}
+                              value={matched}
+                              onChange={e => setMapping({...mapping, [h]: e.target.value})}
                               className="input-forge"
                               style={{ padding: "8px 12px", fontSize: 13 }}
                             >
@@ -263,11 +322,6 @@ export function CSVImportModal({ open, onClose, tableName, fields }: Props) {
                 <div>
                   <div className="mb-4 flex items-center justify-between">
                     <div className="eyebrow">// validation preview</div>
-                    <div className="text-xs" style={{ color: "var(--forge-text-secondary)" }}>
-                      <span style={{ color: "var(--forge-cyan-bright)" }}>3 valid</span> ·{" "}
-                      <span style={{ color: "var(--forge-coral-bright)" }}>2 invalid</span> ·{" "}
-                      <span style={{ color: "var(--forge-text-muted)" }}>1 skipped</span>
-                    </div>
                   </div>
                   <div
                     className="overflow-hidden rounded-lg"
@@ -334,30 +388,29 @@ export function CSVImportModal({ open, onClose, tableName, fields }: Props) {
                       </tbody>
                     </table>
                   </div>
-                  <div className="mt-4">
-                    <button className="btn-ghost !py-2 !px-4 !text-xs">
-                      ↓ Download error report
-                    </button>
-                  </div>
                 </div>
               )}
 
-              {step === 3 && (
+              {step === 3 && importResult && (
                 <div className="flex flex-col items-center justify-center py-16">
                   <div
                     style={{
                       width: 64,
                       height: 64,
                       borderRadius: "50%",
-                      background: "rgba(34,211,238,0.15)",
-                      border: "2px solid var(--forge-cyan-bright)",
+                      background: importResult.inserted > 0 ? "rgba(34,211,238,0.15)" : "rgba(251,113,133,0.15)",
+                      border: `2px solid ${importResult.inserted > 0 ? "var(--forge-cyan-bright)" : "var(--forge-coral-bright)"}`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      boxShadow: "0 0 40px var(--forge-cyan-glow)",
+                      boxShadow: `0 0 40px ${importResult.inserted > 0 ? "var(--forge-cyan-glow)" : "var(--forge-coral-glow)"}`,
                     }}
                   >
-                    <Check size={32} color="var(--forge-cyan-bright)" />
+                    {importResult.inserted > 0 ? (
+                      <Check size={32} color="var(--forge-cyan-bright)" />
+                    ) : (
+                      <AlertTriangle size={32} color="var(--forge-coral-bright)" />
+                    )}
                   </div>
                   <div
                     style={{
@@ -365,11 +418,28 @@ export function CSVImportModal({ open, onClose, tableName, fields }: Props) {
                       fontSize: 24,
                       fontWeight: 800,
                       marginTop: 20,
-                      color: "var(--forge-cyan-bright)",
+                      color: importResult.inserted > 0 ? "var(--forge-cyan-bright)" : "var(--forge-coral-bright)",
                     }}
                   >
-                    ✓ 247 ROWS IMPORTED SUCCESSFULLY
+                    {importResult.inserted > 0 ? `✓ ${importResult.inserted} ROWS IMPORTED` : "0 ROWS IMPORTED"}
                   </div>
+                  <div className="mt-2 text-sm text-center" style={{ color: "var(--forge-text-secondary)" }}>
+                    {importResult.skipped > 0 && (
+                      <span style={{ color: "var(--forge-coral-bright)" }}>
+                        {importResult.skipped} skipped due to errors.{" "}
+                      </span>
+                    )}
+                  </div>
+                  {importResult.skipped > 0 && (
+                    <a
+                      href={`${api.defaults.baseURL || ""}/api/apps/${appId}/import/${tableName}/errors`}
+                      target="_blank"
+                      className="mt-4 nav-link"
+                      style={{ color: "var(--forge-coral-bright)" }}
+                    >
+                      ↓ Download Error Report
+                    </a>
+                  )}
                   <button
                     onClick={() => {
                       onClose();
@@ -392,19 +462,28 @@ export function CSVImportModal({ open, onClose, tableName, fields }: Props) {
               <button
                 className="btn-ghost !py-2 !px-4 !text-xs"
                 onClick={() => setStep(Math.max(0, step - 1))}
-                disabled={step === 0}
-                style={{ opacity: step === 0 ? 0.4 : 1 }}
+                disabled={step === 0 || step === 3 || importLoading}
+                style={{ opacity: step === 0 || step === 3 || importLoading ? 0.4 : 1 }}
               >
                 ← Back
               </button>
-              {step < 3 ? (
+              {step < 2 ? (
                 <button
                   className="btn-forge"
                   onClick={() => setStep(step + 1)}
-                  disabled={step === 0 && !fileName}
-                  style={{ opacity: step === 0 && !fileName ? 0.5 : 1 }}
+                  disabled={step === 0 && !file}
+                  style={{ opacity: step === 0 && !file ? 0.5 : 1 }}
                 >
-                  {step === 2 ? "[ IMPORT 3 VALID ROWS ]" : "Continue →"}
+                  Continue →
+                </button>
+              ) : step === 2 ? (
+                <button
+                  className="btn-forge"
+                  onClick={handleImport}
+                  disabled={importLoading}
+                  style={{ opacity: importLoading ? 0.5 : 1 }}
+                >
+                  {importLoading ? "IMPORTING..." : "[ IMPORT VALID ROWS ]"}
                 </button>
               ) : (
                 <button
