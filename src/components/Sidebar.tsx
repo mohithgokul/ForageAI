@@ -5,9 +5,9 @@ import { easeExpo } from "@/lib/motion";
 const ITEMS = [
   { to: "/dashboard", label: "Overview", icon: "▣" },
   { to: "/new", label: "New App", icon: "✦" },
-  { to: "/apps/demo", label: "My Apps", icon: "◈" },
+  { to: "/apps/$id", params: { id: "demo" }, label: "My Apps", icon: "◈", prefix: "/apps" },
   { to: "/settings", label: "Settings", icon: "⚙" },
-] as const;
+];
 
 export function Sidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -33,7 +33,9 @@ export function Sidebar() {
     >
       <div className="eyebrow mb-4 px-2">// menu</div>
       {ITEMS.map((item, i) => {
-        const active = path === item.to || (item.to !== "/dashboard" && path.startsWith(item.to));
+        const active = "prefix" in item 
+          ? path.startsWith(item.prefix as string)
+          : path === item.to || (item.to !== "/dashboard" && path.startsWith(item.to));
         return (
           <motion.div
             key={item.to}
@@ -43,7 +45,8 @@ export function Sidebar() {
             style={{ position: "relative" }}
           >
             <Link
-              to={item.to}
+              to={item.to as any}
+              params={(item as any).params}
               className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm relative z-10"
               style={{
                 color: active ? "var(--forge-text)" : "var(--forge-text-secondary)",

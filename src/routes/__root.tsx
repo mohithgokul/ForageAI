@@ -18,6 +18,7 @@ import { Navbar } from "@/components/Navbar";
 import { NoiseOverlay } from "@/components/NoiseOverlay";
 import { Cursor } from "@/components/Cursor";
 import { ClientOnly } from "@/components/ClientOnly";
+import { AuthProvider } from "@/context/AuthContext";
 
 function NotFoundComponent() {
   return (
@@ -118,16 +119,18 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Navbar />
-      <NoiseOverlay />
-      <ClientOnly>
-        <Cursor />
-      </ClientOnly>
-      <AnimatePresence mode="wait" initial={false}>
-        <PageTransition key={path} path={path}>
-          <Outlet />
-        </PageTransition>
-      </AnimatePresence>
+      <AuthProvider>
+        <Navbar />
+        <NoiseOverlay />
+        <ClientOnly>
+          <Cursor />
+        </ClientOnly>
+        <AnimatePresence mode="wait" initial={false}>
+          <PageTransition key={path} path={path}>
+            <Outlet />
+          </PageTransition>
+        </AnimatePresence>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

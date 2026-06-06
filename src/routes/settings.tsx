@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
+import { useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { cardGridContainer, cardGridItem } from "@/lib/motion";
+import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -16,6 +18,14 @@ export const Route = createFileRoute("/settings")({
 });
 
 function SettingsPage() {
+  const { user, isLoading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && !user) window.location.href = "/auth";
+  }, [user, authLoading]);
+
+  if (authLoading || !user) return null;
+
   return (
     <main style={{ minHeight: "100vh", paddingTop: 96 }}>
       <Sidebar />
@@ -48,15 +58,17 @@ function SettingsPage() {
 }
 
 function AccountForm() {
+  const { user } = useAuth();
+  
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       <div>
         <label className="eyebrow mb-2 block">// name</label>
-        <input className="input-forge" defaultValue="Ada Lovelace" />
+        <input className="input-forge" defaultValue={user?.name || ""} />
       </div>
       <div>
         <label className="eyebrow mb-2 block">// email</label>
-        <input className="input-forge" defaultValue="ada@forge.ai" />
+        <input className="input-forge" defaultValue={user?.email || ""} />
       </div>
     </div>
   );

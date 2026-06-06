@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { easeExpo } from "@/lib/motion";
+import { useAuth } from "@/context/AuthContext";
 
 const NAV = [
   { to: "/", label: "Index" },
@@ -11,6 +12,7 @@ const NAV = [
 ] as const;
 
 export function Navbar() {
+  const { user, logout } = useAuth();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [scrolled, setScrolled] = useState(false);
 
@@ -63,7 +65,7 @@ export function Navbar() {
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
-          {NAV.map((item) => {
+          {NAV.filter(item => item.to === '/' || user).map((item) => {
             const active = item.to === "/" ? path === "/" : path.startsWith(item.to);
             return (
               <Link key={item.to} to={item.to} className="relative">
@@ -97,9 +99,20 @@ export function Navbar() {
           })}
         </nav>
 
-        <Link to="/auth" className="btn-forge !py-2 !px-5 !text-xs">
-          Sign In
-        </Link>
+        {user ? (
+          <div className="flex items-center gap-4">
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem", color: "var(--forge-text-secondary)" }}>
+              {user.name}
+            </span>
+            <button onClick={logout} className="btn-ghost !py-2 !px-4 !text-xs">
+              Logout
+            </button>
+          </div>
+        ) : (
+          <Link to="/auth" className="btn-forge !py-2 !px-5 !text-xs">
+            Sign In
+          </Link>
+        )}
       </div>
     </motion.header>
   );

@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useState, useRef, useEffect } from "react";
 import { ClientOnly } from "@/components/ClientOnly";
-import { easeExpo } from "@/lib/motion";
+import { useAuth } from "@/context/AuthContext";
 
 const AuthScene = lazy(() => import("@/components/three/AuthScene"));
 
@@ -11,8 +11,6 @@ export const Route = createFileRoute("/auth")({
     meta: [
       { title: "Sign in — FORGEAI" },
       { name: "description", content: "Access the forge." },
-      { property: "og:title", content: "Sign in — FORGEAI" },
-      { property: "og:description", content: "Access the forge." },
     ],
   }),
   component: AuthPage,
@@ -20,7 +18,42 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { login, register, isLoading: authLoading, user } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate({ to: "/dashboard", replace: true });
+    }
+  }, [user, authLoading, navigate]);
+
+  const nameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const email = emailRef.current!.value;
+      const password = passwordRef.current!.value;
+      if (mode === "signup") {
+        const name = nameRef.current!.value;
+        await register(name, email, password);
+      } else {
+        await login(email, password);
+      }
+      navigate({ to: "/dashboard" });
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || "Something went wrong";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <main className="relative" style={{ minHeight: "100vh" }}>
@@ -65,37 +98,40 @@ function AuthPage() {
             {mode === "signin" ? "Welcome back, operator." : "Join the generative layer."}
           </p>
 
-          <form
-            className="mt-7 flex flex-col gap-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              navigate({ to: "/dashboard" });
-            }}
-          >
+          {error && (
+            <div
+              className="mt-4 rounded-lg px-4 py-3 text-sm"
+              style={{ background: "rgba(239,68,68,0.15)", color: "#f87171", border: "1px solid rgba(239,68,68,0.3)" }}
+            >
+              {error}
+            </div>
+          )}
+
+          <form className="mt-7 flex flex-col gap-4" onSubmit={handleSubmit}>
             {mode === "signup" && (
               <div>
                 <label className="eyebrow mb-2 block">// name</label>
-                <input className="input-forge" placeholder="Ada Lovelace" />
+                <input ref={nameRef} className="input-forge" placeholder="Ada Lovelace" required />
               </div>
             )}
             <div>
               <label className="eyebrow mb-2 block">// email</label>
-              <input className="input-forge" type="email" placeholder="you@forge.ai" />
+              <input ref={emailRef} className="input-forge" type="email" placeholder="you@forge.ai" required />
             </div>
             <div>
               <label className="eyebrow mb-2 block">// password</label>
-              <input className="input-forge" type="password" placeholder="••••••••" />
+              <input ref={passwordRef} className="input-forge" type="password" placeholder="••••••••" required minLength={8} />
             </div>
 
-            <button type="submit" className="btn-forge mt-2 w-full">
-              {mode === "signin" ? "Enter" : "Create account"}
+            <button type="submit" className="btn-forge mt-2 w-full" disabled={loading || authLoading}>
+              {loading ? "// processing..." : mode === "signin" ? "Enter" : "Create account"}
             </button>
           </form>
 
           <div className="mt-6 text-center text-xs" style={{ color: "var(--forge-text-muted)" }}>
             {mode === "signin" ? "No account?" : "Have an account?"}{" "}
             <button
-              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+              onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(""); }}
               style={{ color: "var(--forge-cyan-bright)", background: "none", border: "none" }}
               className="nav-link !text-xs"
             >

@@ -24,15 +24,44 @@ def close_pool():
         _pool = None
 
 
+import re
+
+
+def _to_psycopg2(query: str) -> str:
+    """Convert PostgreSQL $1, $2, ... placeholders to psycopg2 %s style."""
+    return re.sub(r"\$\d+", "%s", query)
+
+
 def _execute_query(query: str, params=None, fetch: str = "none"):
     """
     fetch: "all" | "one" | "val" | "none"
+    Automatically converts $1/$2/... to %s for psycopg2 compatibility.
     """
     pool = get_pool()
     conn = pool.getconn()
     try:
+        if conn.closed:
+            conn = pool.getconn()
+            
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute(query, params)
+            cur.execute(_to_psycopg2(query), params)
+            conn.commit()
+            if fetch == "all":
+                return cur.fetchall()
+            elif fetch == "one":
+                return cur.fetchone()
+            elif fetch == "val":
+                row = cur.fetchone()
+                if row:
+                    return list(row.values())[0]
+                return None
+            return None
+    except psycopg2.InterfaceError:
+        # Reconnect on closed connection (e.g. Neon scale to zero)
+        pool.putconn(conn, close=True)
+        conn = pool.getconn()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(_to_psycopg2(query), params)
             conn.commit()
             if fetch == "all":
                 return cur.fetchall()
@@ -45,10 +74,12 @@ def _execute_query(query: str, params=None, fetch: str = "none"):
                 return None
             return None
     except Exception:
-        conn.rollback()
+        if not conn.closed:
+            conn.rollback()
         raise
     finally:
-        pool.putconn(conn)
+        if not conn.closed:
+            pool.putconn(conn)
 
 
 import asyncio
@@ -86,7 +117,7 @@ async def executemany(query: str, args_list: list):
         conn = pool.getconn()
         try:
             with conn.cursor() as cur:
-                cur.executemany(query, args_list)
+                cur.executemany(_to_psycopg2(query), args_list)
             conn.commit()
         except Exception:
             conn.rollback()

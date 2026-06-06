@@ -8,6 +8,8 @@ interface Props {
   onClose: () => void;
   tableName: string;
   fields: string[];
+  appId: string;
+  onImport?: () => void;
 }
 
 const STEPS = ["UPLOAD", "MAP COLUMNS", "PREVIEW", "IMPORT"];

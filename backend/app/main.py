@@ -39,6 +39,13 @@ def create_app() -> FastAPI:
             content={"error": "SERVER_ERROR", "message": "Internal server error"},
         )
 
+    from starlette.exceptions import HTTPException as StarletteHTTPException
+    @application.exception_handler(StarletteHTTPException)
+    async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+        if isinstance(exc.detail, dict):
+            return JSONResponse(status_code=exc.status_code, content=exc.detail)
+        return JSONResponse(status_code=exc.status_code, content={"message": exc.detail})
+
     # Routers
     application.include_router(auth.router)
     application.include_router(user.router)

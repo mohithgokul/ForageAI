@@ -2,7 +2,7 @@ import google.generativeai as genai
 from app.config import settings
 
 genai.configure(api_key=settings.GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-1.5-flash")
+model = genai.GenerativeModel("gemini-3.5-flash")
 
 SYSTEM_PROMPT = """You are a database architect AI.
 The user will describe an application they want to build.

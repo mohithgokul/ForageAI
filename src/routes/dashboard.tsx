@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { ClientOnly } from "@/components/ClientOnly";
 import { cardGridContainer, cardGridItem, easeExpo } from "@/lib/motion";
+import { useAuth } from "@/context/AuthContext";
+import { useApps } from "@/hooks/useApps";
 
 const DashboardScene = lazy(() => import("@/components/three/DashboardScene"));
 
@@ -12,25 +14,44 @@ export const Route = createFileRoute("/dashboard")({
     meta: [
       { title: "Dashboard — FORGEAI" },
       { name: "description", content: "Your forged applications." },
-      { property: "og:title", content: "Dashboard — FORGEAI" },
-      { property: "og:description", content: "Your forged applications." },
     ],
   }),
   component: DashboardPage,
 });
 
-const APPS = [
-  { id: "atlas", name: "Atlas CRM", status: "live", color: "var(--forge-violet-bright)" },
-  { id: "kepler", name: "Kepler Analytics", status: "building", color: "var(--forge-cyan-bright)" },
-  { id: "vesper", name: "Vesper Inbox", status: "live", color: "var(--forge-coral-bright)" },
-  { id: "orion", name: "Orion Docs", status: "draft", color: "var(--forge-gold-bright)" },
+const APP_COLORS = [
+  "var(--forge-violet-bright)",
+  "var(--forge-cyan-bright)",
+  "var(--forge-coral-bright)",
+  "var(--forge-gold-bright)",
 ];
 
 function DashboardPage() {
+  const { user, isLoading: authLoading } = useAuth();
+  const { apps, isLoading } = useApps();
+
+  useEffect(() => {
+    if (!authLoading && !user) window.location.href = "/auth";
+  }, [user, authLoading]);
+
+  if (authLoading || !user) {
+    return (
+      <div className="flex items-center justify-center" style={{ minHeight: "100vh" }}>
+        <div className="eyebrow">// loading...</div>
+      </div>
+    );
+  }
+
+  const liveCount = apps.filter((a: any) => a.status === "LIVE").length;
+  const totalRecords = apps.reduce((s: number, a: any) => s + (a.totalRecords || 0), 0);
+  const totalTables = apps.reduce((s: number, a: any) => s + (a.config?.tables?.length || 0), 0);
+
   return (
     <main style={{ minHeight: "100vh", paddingTop: 96 }}>
       <Sidebar />
       <div style={{ marginLeft: 288, paddingRight: 32, paddingBottom: 64 }}>
+
+        {/* Header */}
         <div className="flex items-start justify-between gap-8 mb-12">
           <div>
             <div className="eyebrow">// dashboard</div>
@@ -38,7 +59,7 @@ function DashboardPage() {
               Your forge.
             </h1>
             <p className="mt-3 text-base" style={{ color: "var(--forge-text-secondary)" }}>
-              4 active applications. 1 building.
+              {isLoading ? "Loading..." : `${apps.length} application${apps.length !== 1 ? "s" : ""}.`}
             </p>
           </div>
           <ClientOnly>
@@ -46,9 +67,7 @@ function DashboardPage() {
               <Suspense fallback={<div className="skeleton" style={{ width: 280, height: 280 }} />}>
                 <DashboardScene />
               </Suspense>
-              <div className="eyebrow" style={{ fontSize: "0.65rem" }}>
-                // forge engine active
-              </div>
+              <div className="eyebrow" style={{ fontSize: "0.65rem" }}>// forge engine active</div>
             </div>
           </ClientOnly>
         </div>
@@ -61,22 +80,15 @@ function DashboardPage() {
           className="grid grid-cols-1 gap-4 md:grid-cols-4 mb-10"
         >
           {[
-            { l: "Apps built", v: "12" },
-            { l: "Deployments", v: "48" },
-            { l: "Prompts", v: "317" },
-            { l: "Tokens / mo", v: "1.2M" },
+            { l: "Apps", v: String(apps.length) },
+            { l: "Live", v: String(liveCount) },
+            { l: "Tables", v: String(totalTables) },
+            { l: "Records", v: String(totalRecords) },
           ].map((s) => (
             <motion.div key={s.l} variants={cardGridItem} className="glass-card p-5">
-              <div className="eyebrow" style={{ fontSize: "0.65rem" }}>
-                // {s.l}
-              </div>
+              <div className="eyebrow" style={{ fontSize: "0.65rem" }}>// {s.l}</div>
               <div
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontWeight: 800,
-                  fontSize: "2rem",
-                  marginTop: 6,
-                }}
+                style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "2rem", marginTop: 6 }}
                 className="text-gradient-violet-cyan"
               >
                 {s.v}
@@ -88,80 +100,62 @@ function DashboardPage() {
         {/* App grid */}
         <div className="flex items-center justify-between mb-4">
           <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem" }}>Apps</h2>
-          <Link to="/new" className="btn-forge !py-2 !px-4 !text-xs">
-            + New app
-          </Link>
+          <Link to="/new" className="btn-forge !py-2 !px-4 !text-xs">+ New app</Link>
         </div>
 
-        <motion.div
-          variants={cardGridContainer}
-          initial="initial"
-          animate="animate"
-          className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3"
-        >
-          {APPS.map((app) => (
-            <motion.div
-              key={app.id}
-              variants={cardGridItem}
-              whileHover={{ y: -6 }}
-              transition={{ duration: 0.3, ease: easeExpo }}
-              className="glass-card p-6 relative"
-            >
-              {/* Corner brackets */}
-              {[
-                { top: 8, left: 8 },
-                { top: 8, right: 8 },
-                { bottom: 8, left: 8 },
-                { bottom: 8, right: 8 },
-              ].map((pos, i) => (
-                <div
-                  key={i}
-                  style={{
-                    position: "absolute",
-                    width: 10,
-                    height: 10,
-                    border: `1px solid ${app.color}`,
-                    borderTop: pos.top !== undefined ? `1px solid ${app.color}` : "none",
-                    borderBottom: pos.bottom !== undefined ? `1px solid ${app.color}` : "none",
-                    borderLeft: pos.left !== undefined ? `1px solid ${app.color}` : "none",
-                    borderRight: pos.right !== undefined ? `1px solid ${app.color}` : "none",
-                    opacity: 0.5,
-                    ...pos,
-                  }}
-                />
-              ))}
-              <Link to="/apps/$id" params={{ id: app.id }} className="block">
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 8,
-                    background: app.color,
-                    boxShadow: `0 0 24px ${app.color}`,
-                    marginBottom: 16,
-                  }}
-                />
-                <div className="flex items-center justify-between">
-                  <h3
-                    style={{
-                      fontFamily: "var(--font-display)",
-                      fontSize: "1.25rem",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {app.name}
-                  </h3>
-                  <span className="eyebrow" style={{ fontSize: "0.6rem", color: app.color }}>
-                    {app.status}
-                  </span>
-                </div>
-                <p className="mt-2 text-xs" style={{ color: "var(--forge-text-muted)" }}>
-                  forge.ai/{app.id}
-                </p>
-              </Link>
-            </motion.div>
-          ))}
-        </motion.div>
+        {isLoading ? (
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="skeleton" style={{ height: 160, borderRadius: 16 }} />
+            ))}
+          </div>
+        ) : apps.length === 0 ? (
+          <div className="glass-card p-12 text-center">
+            <div className="eyebrow mb-4">// no apps yet</div>
+            <p style={{ color: "var(--forge-text-secondary)" }}>Create your first app to get started.</p>
+            <Link to="/new" className="btn-forge mt-6 inline-flex">+ Forge an app</Link>
+          </div>
+        ) : (
+          <motion.div
+            variants={cardGridContainer}
+            initial="initial"
+            animate="animate"
+            className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3"
+          >
+            {apps.map((app: any, idx: number) => {
+              const color = APP_COLORS[idx % APP_COLORS.length];
+              return (
+                <motion.div
+                  key={app.id}
+                  variants={cardGridItem}
+                  whileHover={{ y: -6 }}
+                  transition={{ duration: 0.3, ease: easeExpo }}
+                  className="glass-card p-6 relative"
+                >
+                  <Link to="/apps/$id" params={{ id: app.id }} className="block">
+                    <div
+                      style={{
+                        width: 40, height: 40, borderRadius: 8,
+                        background: color, boxShadow: `0 0 24px ${color}`, marginBottom: 16,
+                      }}
+                    />
+                    <div className="flex items-center justify-between">
+                      <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 700 }}>
+                        {app.name}
+                      </h3>
+                      <span className="eyebrow" style={{ fontSize: "0.6rem", color }}>
+                        {app.status?.toLowerCase()}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs" style={{ color: "var(--forge-text-muted)" }}>
+                      {app.totalRecords ?? 0} records · {app.config?.tables?.length ?? 0} tables
+                    </p>
+                  </Link>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        )}
       </div>
     </main>
   );

@@ -7,6 +7,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   appName: string;
+  appId: string;
 }
 
 const ARTIFACTS = [
